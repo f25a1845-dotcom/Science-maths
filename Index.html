@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Integration Calculator</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js"></script>
+
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F3F4F6;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+            --border: #D1D5DB;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .calculator-container {
+            background-color: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: var(--text);
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: #4B5563;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .bounds-group {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .bounds-group .input-group {
+            flex: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 0.875rem;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .result-box {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #F9FAFB;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.125rem;
+            font-weight: 500;
+            word-break: break-all;
+            text-align: center;
+        }
+
+        .error {
+            color: #DC2626;
+            font-size: 0.9rem;
+        }
+        
+        .hints {
+            font-size: 0.75rem;
+            color: #6B7280;
+            margin-top: 0.25rem;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calculator-container">
+        <h2>Integration Calculator</h2>
+
+        <div class="input-group">
+            <label for="functionInput">Function f(x)</label>
+            <input type="text" id="functionInput" placeholder="e.g., x^2 + 2*x + sin(x)" value="x^2">
+            <span class="hints">Use standard math syntax: +, -, *, /, ^</span>
+        </div>
+
+        <div class="input-group" style="width: 30%;">
+            <label for="variableInput">Variable</label>
+            <input type="text" id="variableInput" value="x">
+        </div>
+
+        <div class="bounds-group">
+            <div class="input-group">
+                <label for="lowerBound">Lower Bound (Optional)</label>
+                <input type="text" id="lowerBound" placeholder="e.g., 0">
+            </div>
+            <div class="input-group">
+                <label for="upperBound">Upper Bound (Optional)</label>
+                <input type="text" id="upperBound" placeholder="e.g., 1">
+            </div>
+        </div>
+
+        <button onclick="calculateIntegral()">Calculate Integral</button>
+
+        <div class="result-box" id="resultDisplay">
+            Result will appear here
+        </div>
+    </div>
+
+    <script>
+        function calculateIntegral() {
+            const func = document.getElementById('functionInput').value.trim();
+            const variable = document.getElementById('variableInput').value.trim();
+            const lower = document.getElementById('lowerBound').value.trim();
+            const upper = document.getElementById('upperBound').value.trim();
+            const resultDisplay = document.getElementById('resultDisplay');
+
+            if (!func || !variable) {
+                resultDisplay.innerHTML = '<span class="error">Please enter both a function and a variable.</span>';
+                return;
+            }
+
+            try {
+                // Step 1: Calculate Indefinite Integral
+                const indefinite = nerdamer(`integrate(${func}, ${variable})`);
+                
+                // Step 2: Check if bounds are provided for Definite Integral
+                if (lower !== "" && upper !== "") {
+                    // Evaluate at upper bound
+                    const evalUpper = nerdamer(indefinite.text(), { [variable]: upper });
+                    // Evaluate at lower bound
+                    const evalLower = nerdamer(indefinite.text(), { [variable]: lower });
+                    
+                    // Subtract lower from upper: F(b) - F(a)
+                    const definiteResult = nerdamer(`${evalUpper.text()} - (${evalLower.text()})`).evaluate().text();
+                    
+                    resultDisplay.innerHTML = `<strong>Definite Result:</strong> &nbsp; ${definiteResult}`;
+                } else {
+                    // Just output the indefinite integral + C
+                    resultDisplay.innerHTML = `<strong>Indefinite Result:</strong> &nbsp; ${indefinite.text()} + C`;
+                }
+            } catch (error) {
+                resultDisplay.innerHTML = '<span class="error">Error parsing function. Please check your syntax.</span>';
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>
